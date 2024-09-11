@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <script type="text/javascript">
+        // List of URLs
+        var urlList = ['http://147.46.178.58:7777/','http://147.46.178.58:7778/','http://147.46.178.58:7779/','http://147.46.178.58:7780/','http://147.46.178.58:7781/',
+      'http://147.46.178.58:7782/','http://147.46.178.58:7783/','http://147.46.178.58:7784/','http://147.46.178.58:7785/','http://147.46.178.58:7786/','http://147.46.94.88:7777/',
+      'http://147.46.94.88:7778/','http://147.46.94.88:7779/','http://147.46.94.88:7780/','http://147.46.94.88:7781/','http://147.46.94.88:7782/','http://147.46.94.88:7783/',
+      'http://147.46.94.88:7784/','http://147.46.94.88:7785/','http://147.46.94.88:7786/','http://147.46.199.43:7777/','http://147.46.199.43:7778/','http://147.46.199.43:7779/',
+      'http://147.46.199.43:7780/','http://147.46.199.43:7781/','http://147.46.199.43:7782/','http://147.46.199.43:7783/','http://147.46.199.43:7784/','http://147.46.199.43:7785/',
+      'http://147.46.199.43:7786/'];
+
+        // Function to randomly pick a URL and redirect
+        function redirectToRandomUrl() {
+            var randomIndex = Math.floor(Math.random() * urlList.length);
+            var selectedUrl = urlList[randomIndex];
+            window.location.href = selectedUrl;
+        }
+
+        // Trigger redirection when the page loads
+        window.onload = redirectToRandomUrl;
+    </script>
+</head>
+<body>
+    <h1>Redirecting, please wait...</h1>
+</body>
+</html>
