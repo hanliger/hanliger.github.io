@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>조건 판정 검수</title>
+<style>
+:root{
+  --bg:#f5f6f8;--surface:#fff;--surface-2:#f0f2f5;--line:#dde1e7;--text:#1b2230;--muted:#5d6777;
+  --accent:#2f5fd0;--accent-soft:#e7eefc;--ok:#1f7a4d;--ok-soft:#e3f3ea;--warn:#a35a00;--warn-soft:#fbefdc;
+  --ref:#6b4bb8;--ref-soft:#f0ebfa;--pred:#0f7a8a;--pred-soft:#e2f3f5;--focus:#2f5fd0;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c;--surface:#1c2027;--surface-2:#242932;--line:#333a45;--text:#e6e9ee;--muted:#9aa3b2;
+  --accent:#7ea2ff;--accent-soft:#25304a;--ok:#5cc28f;--ok-soft:#1d3329;--warn:#f0b35e;--warn-soft:#3a2d1a;
+  --ref:#b9a2f0;--ref-soft:#2c2540;--pred:#6fd0dc;--pred-soft:#1b3337;--focus:#7ea2ff;}}
+:root[data-theme="dark"]{
+  --bg:#14171c;--surface:#1c2027;--surface-2:#242932;--line:#333a45;--text:#e6e9ee;--muted:#9aa3b2;
+  --accent:#7ea2ff;--accent-soft:#25304a;--ok:#5cc28f;--ok-soft:#1d3329;--warn:#f0b35e;--warn-soft:#3a2d1a;
+  --ref:#b9a2f0;--ref-soft:#2c2540;--pred:#6fd0dc;--pred-soft:#1b3337;--focus:#7ea2ff;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 13px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+.hidden{display:none!important}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+h1{font-size:22px;margin:0}
+h2{font-size:17px;margin:0 0 10px}
+h3{font-size:15px;margin:0 0 8px}
+
+/* start */
+#start{padding:40px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.start-grid{display:grid;gap:16px;margin-top:20px}
+.field label{display:block;font-weight:600;margin-bottom:6px}
+.field input[type=text]{width:100%;max-width:360px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:18px;text-align:center;background:var(--surface-2)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.note{background:var(--surface-2);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--muted)}
+.err{color:#c0392b;font-weight:600}
+
+/* top bar */
+#bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+#bar .wrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+.progress{flex:1 1 200px;min-width:160px}
+.progress .track{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.progress .fill{height:100%;background:var(--ok);width:0}
+#jump{max-width:180px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:13px}
+
+/* item */
+#review main{padding-top:18px;padding-bottom:60px}
+.item-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.badge.done{background:var(--ok-soft);color:var(--ok)}
+.badge.todo{background:var(--warn-soft);color:var(--warn)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:820px){.pair{grid-template-columns:1fr}}
+.action{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;border-top:4px solid var(--ref)}
+.action.pred{border-top-color:var(--pred)}
+.action .who{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--ref)}
+.action.pred .who{color:var(--pred)}
+dl.kv{display:grid;grid-template-columns:76px 1fr;gap:4px 10px;margin:10px 0 0}
+dl.kv dt{color:var(--muted);font-size:13px}
+dl.kv dd{margin:0;overflow-wrap:anywhere}
+.conds{margin-top:12px;border-radius:10px;padding:10px 12px;background:var(--ref-soft)}
+.action.pred .conds{background:var(--pred-soft)}
+.conds h4{margin:0 0 6px;font-size:13px}
+.conds ol{margin:0;padding-left:20px}
+.conds li{margin:4px 0}
+.kind{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--surface);border:1px solid var(--line);margin-right:6px;white-space:nowrap}
+.none{color:var(--muted);font-style:italic}
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:10px}
+details>summary{cursor:pointer;padding:10px 14px;font-weight:600}
+details .body{padding:0 14px 12px;font-size:14px}
+.claim{border-left:3px solid var(--line);padding:4px 10px;margin:8px 0}
+.claim.hit{border-left-color:var(--accent)}
+.tl{display:grid;grid-template-columns:44px 92px 1fr;gap:2px 10px;font-size:13px;padding:3px 0;border-bottom:1px solid var(--surface-2)}
+.tl .id{color:var(--muted)}
+.mini{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13px}
+.mini.focus{border-color:var(--accent);background:var(--accent-soft)}
+
+/* form */
+form.judge{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:16px}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:700;margin-bottom:8px;padding:0}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer;background:var(--surface)}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{margin-top:4px}
+.opts.col{flex-direction:column}
+.key{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:4px}
+textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface)}
+.form-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#saveState{font-size:13px;color:var(--muted)}
+
+/* guide */
+#guide{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:flex;justify-content:flex-end}
+#guide .panel{width:min(560px,100%);height:100%;overflow:auto;background:var(--surface);padding:22px 20px;border-left:1px solid var(--line)}
+#guide li{margin:6px 0}
+</style>
+</head>
+<body>
+
+<!-- ============ start ============ -->
+<section id="start" class="wrap">
+  <h1>조건 판정 검수</h1>
+  <p class="muted">기록된 결정의 구제 조치와 모델이 제시한 같은 조치를 비교해, 두 조치의 <b>실질 조건</b>이 같은지 판정합니다.</p>
+  <div class="start-grid">
+    <div class="card">
+      <div class="field">
+        <label for="reviewer">1. 검수자 ID</label>
+        <input id="reviewer" type="text" placeholder="예: R1" autocomplete="off">
+        <p class="small muted">받은 안내에 적힌 ID를 그대로 입력하세요. 문항 순서와 저장 위치가 이 ID로 정해집니다.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label for="password">2. 비밀번호</label>
+        <input id="password" type="password" autocomplete="off" style="width:100%;max-width:360px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)">
+        <p class="small muted">안내받은 비밀번호를 입력하세요. 검수 자료는 이 브라우저 안에서만 풀립니다.</p>
+      </div>
+      <details style="margin-top:4px">
+        <summary class="small">자료 파일을 따로 받은 경우</summary>
+        <div class="body">
+          <div id="drop" class="drop">
+            <p style="margin:0 0 8px">받은 <code>condition_review_packet.json</code> 파일을 끌어다 놓거나 선택하세요.</p>
+            <input id="packetFile" type="file" accept=".json,application/json">
+          </div>
+        </div>
+      </details>
+      <p id="packetInfo" class="small muted"></p>
+      <div class="field" style="margin-top:12px">
+        <label for="resumeFile">이전 결과 이어서 하기 (선택)</label>
+        <input id="resumeFile" type="file" accept=".json,application/json">
+        <p class="small muted">다른 기기에서 내보낸 결과 파일이 있으면 함께 선택하세요. 같은 브라우저라면 자동으로 이어집니다.</p>
+      </div>
+    </div>
+    <div>
+      <button id="begin" class="primary" disabled>검수 시작</button>
+      <span id="startErr" class="err small"></span>
+    </div>
+    <div class="note">자료 파일은 이 브라우저 안에서만 읽히며 어떤 서버로도 전송되지 않습니다. 판정은 이 브라우저에 자동 저장되고, 마칠 때 <b>결과 내보내기</b>로 받은 파일을 담당자에게 보내 주세요.</div>
+  </div>
+</section>
+
+<!-- ============ review ============ -->
+<section id="review" class="hidden">
+  <div id="bar">
+    <div class="wrap">
+      <button id="prev" title="이전 (←)">← 이전</button>
+      <select id="jump" aria-label="문항 이동"></select>
+      <button id="next" title="다음 (→)">다음 →</button>
+      <label class="toggle"><input id="onlyTodo" type="checkbox"> 미완료만</label>
+      <div class="progress" aria-live="polite">
+        <div class="small"><span id="progText"></span></div>
+        <div class="track"><div id="progFill" class="fill"></div></div>
+      </div>
+      <button id="openGuide">판정 기준</button>
+      <button id="exportJson" class="primary">결과 내보내기</button>
+      <button id="exportCsv">CSV</button>
+    </div>
+  </div>
+  <main class="wrap">
+    <div class="item-head">
+      <h2 id="itemTitle"></h2>
+      <span id="itemState" class="badge"></span>
+    </div>
+    <div class="pair">
+      <article class="action ref" id="refCard"></article>
+      <article class="action pred" id="predCard"></article>
+    </div>
+
+    <details id="caseBox"><summary>사례 입력 (청구·당사자 주장·경과)</summary><div class="body" id="caseBody"></div></details>
+    <details><summary>기록된 결정의 전체 조치</summary><div class="body" id="refAll"></div></details>
+    <details><summary>모델 응답의 전체 조치</summary><div class="body" id="predAll"></div></details>
+
+    <form class="judge" id="form" onsubmit="return false">
+      <fieldset>
+        <legend>Q1. 두 조치의 실질 조건이 같습니까?</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="q1" value="same"> 같음<span class="key">1</span></label>
+          <label class="opt"><input type="radio" name="q1" value="different"> 다름<span class="key">2</span></label>
+          <label class="opt"><input type="radio" name="q1" value="undecidable"> 판단 불가<span class="key">3</span></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Q2. 두 조치의 조건에서 관찰한 차이 (해당 항목 모두)</legend>
+        <div class="opts col" id="q2"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Q3. 확신도</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="conf" value="high"> 높음</label>
+          <label class="opt"><input type="radio" name="conf" value="medium"> 보통</label>
+          <label class="opt"><input type="radio" name="conf" value="low"> 낮음</label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Q4. 문제 표시 (해당 시)</legend>
+        <div class="opts col">
+          <label class="opt"><input type="checkbox" name="flags" value="not_same_action"> 두 조치를 같은 조치로 보기 어려움</label>
+          <label class="opt"><input type="checkbox" name="flags" value="reference_doubt"> 기록된 결정 쪽 조치 내용에 의문이 있음</label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend><label for="note">Q5. 근거 메모</label></legend>
+        <textarea id="note" placeholder="판정 근거를 한두 문장으로 적어 주세요. '다름'·'판단 불가'에는 꼭 적어 주세요."></textarea>
+      </fieldset>
+      <div class="form-foot">
+        <span id="saveState"></span>
+        <button id="saveNext" class="primary" type="button">저장하고 다음 →</button>
+      </div>
+    </form>
+  </main>
+</section>
+
+<!-- ============ guide ============ -->
+<div id="guide" class="hidden" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center"><h2 id="guideTitle">판정 기준</h2><button id="closeGuide">닫기</button></div>
+    <h3>무엇을 판정하나요</h3>
+    <ul>
+      <li>왼쪽은 <b>기록된 결정</b>의 조치, 오른쪽은 <b>모델 응답</b>에서 같은 조치로 대응된 조치입니다.</li>
+      <li>두 조치의 <b>실질 조건</b>이 같은지만 판정합니다. 금액·산식과 적용 범위는 별도 항목이므로 여기서는 판단하지 않습니다. 다만 금액을 어떻게 산정할지 정하는 조건은 조건으로 봅니다.</li>
+      <li>조건은 조치 카드의 '조건' 칸에 있지만, 조치 설명(내용)에 조건이 들어 있으면 그것도 함께 봅니다.</li>
+      <li>자동 판정 결과는 제공하지 않습니다. 독립적으로 판단해 주세요.</li>
+    </ul>
+    <h3>실행 조건은 실질 차이가 아닙니다</h3>
+    <ul>
+      <li>다음은 확정된 권리를 <b>이행하는 절차</b>로 봅니다: 결정 수락, 계좌 정보 제공, 물품 반환, 이미 지급했는지 확인, 권리 확정 후의 금액 계산, 세금 관련 서류, 계좌 정정 전 상환, 연락처 확인 등.</li>
+      <li>이런 조건이 한쪽에만 있거나 표현이 달라도, 그것만으로는 '다름'이 아닙니다.</li>
+    </ul>
+    <h3>'다름'으로 보는 경우</h3>
+    <ul>
+      <li>한쪽은 확정 지급인데 다른 쪽은 <b>새로운 증빙을 내야</b> 지급하는 경우 (권리 입증 조건의 추가·누락).</li>
+      <li>조건의 대상·기간·기준이 달라 받을 수 있는 범위나 산정 방식이 실제로 바뀌는 경우.</li>
+      <li>조건부 권리의 성립 조건 자체가 다른 경우.</li>
+    </ul>
+    <h3>그 밖에</h3>
+    <ul>
+      <li>문구 차이 자체는 차이가 아닙니다.</li>
+      <li>조건 유형 표시(실행·권리 입증 등)가 달라도 내용이 같다면 '같음'으로 보고, Q2에서 '유형 표시만 다름'을 고르세요.</li>
+      <li>두 조치가 애초에 같은 조치로 보기 어렵거나 기록된 결정 쪽 내용이 의심스러우면 Q4에 표시하세요. 이때 '판단 불가'를 골라도 됩니다.</li>
+      <li>단축키: 1·2·3 = Q1 선택, ← → = 이동, Enter(메모 밖) = 저장하고 다음.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const Q2 = [
+  ['no_difference', '차이 없음 (표현만 다름)'],
+  ['execution_only', '한쪽에만 있는 조건이 있으나 실행·이행 절차 성격임'],
+  ['entitlement_evidence', '권리 입증 조건(새 증빙 요구)이 한쪽에만 있음'],
+  ['amount_calculation', '금액 산정에 관한 조건이 다름'],
+  ['content_differs', '양쪽 조건의 대상·기간·기준이 다름'],
+  ['kind_label_only', '조건 유형 표시만 다르고 내용은 같음'],
+  ['other', '기타 (메모에 설명)'],
+];
+const TYPE = {refund_payment:'환불·지급', compensate_financial_loss:'재정 손실 보상', compensate_distress_inconvenience:'정신적 고통·불편 보상',
+  adjust_interest_or_fees:'이자·수수료 조정', adjust_debt:'채무 조정', correct_credit_record:'신용 기록 정정', remove_fraud_marker:'사기 표시 삭제',
+  account_or_service_action:'계좌·서비스 조치', investigate_or_reconsider:'조사·재검토', other:'기타'};
+const STATUS = {required_now:'현재 의무', conditional:'조건부 권리', hypothetical:'가정적 대안'};
+const KIND = {execution:'실행·이행', evidence_for_entitlement:'권리 입증', amount_calculation:'금액 산정', other:'기타'};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+
+let packet = null, resume = null, reviewer = '', order = [], pos = 0, answers = {}, items = {};
+
+/* ---------- start screen ---------- */
+function readJson(file){ return file.text().then(t => JSON.parse(t)); }
+function checkReady(){ $('begin').disabled = !((packet || $('password').value) && $('reviewer').value.trim()); }
+$('reviewer').addEventListener('input', checkReady);
+$('password').addEventListener('input', checkReady);
+$('password').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('begin').disabled) $('begin').click(); });
+async function decryptPacket(pw){
+  if (!(window.crypto && crypto.subtle)) throw new Error('이 브라우저에서는 암호 해제를 지원하지 않습니다. 최신 Chrome·Edge·Safari·Firefox를 사용하세요.');
+  const res = await fetch('data.enc.json', {cache: 'no-store'});
+  if (!res.ok) throw new Error('검수 자료를 찾지 못했습니다. 담당자에게 문의하세요.');
+  const e = await res.json();
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name: 'PBKDF2', salt: b64(e.salt), iterations: e.iter, hash: 'SHA-256'},
+    base, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
+  let plain;
+  try { plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64(e.iv)}, key, b64(e.ct)); }
+  catch { throw new Error('비밀번호가 맞지 않습니다.'); }
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+async function loadPacket(file){
+  $('startErr').textContent = '';
+  try {
+    const p = await readJson(file);
+    if (!p || !p.packet_id || !Array.isArray(p.items) || !p.cases) throw new Error('검수 자료 파일 형식이 아닙니다.');
+    packet = p;
+    $('packetInfo').textContent = `자료 ${p.packet_id} · 문항 ${p.items.length}개를 읽었습니다.`;
+  } catch(e){ packet = null; $('packetInfo').textContent = ''; $('startErr').textContent = '파일을 읽지 못했습니다: ' + e.message; }
+  checkReady();
+}
+$('packetFile').addEventListener('change', e => e.target.files[0] && loadPacket(e.target.files[0]));
+const drop = $('drop');
+['dragover','dragenter'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => e.dataTransfer.files[0] && loadPacket(e.dataTransfer.files[0]));
+$('resumeFile').addEventListener('change', async e => {
+  try { resume = await readJson(e.target.files[0]); $('startErr').textContent = ''; }
+  catch { resume = null; $('startErr').textContent = '결과 파일을 읽지 못했습니다.'; }
+});
+
+function hash32(s){ let h = 2166136261; for (const c of s){ h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function shuffled(arr, seed){
+  let a = seed || 1; const rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const out = arr.slice(); for (let i = out.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; } return out;
+}
+const storeKey = () => `condrev:${packet.packet_id}:${reviewer}`;
+
+$('begin').addEventListener('click', async () => {
+  $('startErr').textContent = '';
+  if (!packet){
+    $('begin').disabled = true; $('packetInfo').textContent = '자료를 여는 중…';
+    try { packet = await decryptPacket($('password').value); }
+    catch (e){ $('packetInfo').textContent = ''; $('startErr').textContent = e.message; checkReady(); return; }
+    $('password').value = '';
+  }
+  reviewer = $('reviewer').value.trim();
+  items = Object.fromEntries(packet.items.map(it => [it.item_id, it]));
+  order = shuffled(packet.items.map(it => it.item_id), hash32(reviewer + '|' + packet.packet_id));
+  const saved = store.get(storeKey());
+  answers = (saved && saved.answers) || {};
+  if (resume){
+    if (resume.packet_id !== packet.packet_id){ $('startErr').textContent = '결과 파일이 이 검수 자료와 맞지 않습니다.'; return; }
+    for (const [k, v] of Object.entries(resume.answers || {})){
+      if (!answers[k] || (v.updated_at || '') > (answers[k].updated_at || '')) answers[k] = v;
+    }
+  }
+  pos = (saved && Number.isInteger(saved.pos)) ? Math.min(saved.pos, order.length - 1) : 0;
+  persist();
+  $('start').classList.add('hidden'); $('review').classList.remove('hidden');
+  buildQ2(); render();
+});
+
+/* ---------- rendering ---------- */
+function buildQ2(){
+  $('q2').innerHTML = Q2.map(([v, t]) => `<label class="opt"><input type="checkbox" name="q2" value="${v}"> ${esc(t)}</label>`).join('');
+}
+function labelOf(caseObj, id){
+  const s = (caseObj.input.stakeholders || []).find(x => x.id === id);
+  return s ? s.label : (id || '—');
+}
+function amountText(a){
+  if (!a) return '—';
+  const cur = a.currency === 'GBP' ? '£' : (a.currency ? a.currency + ' ' : '');
+  const num = v => (typeof v === 'number') ? v.toLocaleString('en-GB', {maximumFractionDigits: 2}) : v;
+  switch (a.kind){
+    case 'exact': return `${cur}${num(a.value)}`;
+    case 'formula': return `산식: ${a.formula || '—'}`;
+    case 'not_applicable': return '해당 없음';
+    case 'unspecified': return '특정되지 않음';
+    default: return [a.kind, a.value != null ? cur + num(a.value) : '', a.formula || ''].filter(Boolean).join(' · ');
+  }
+}
+function condList(conds){
+  if (!conds || !conds.length) return '<p class="none">조건 없음</p>';
+  return '<ol>' + conds.map(c => `<li><span class="kind">${esc(KIND[c.kind] || c.kind)}</span>${esc(c.description)}</li>`).join('') + '</ol>';
+}
+function actionCard(who, act, caseObj){
+  return `<div class="who">${who}</div>
+    <h3 style="margin-top:4px">${esc(TYPE[act.type] || act.type)}</h3>
+    <div>${esc(act.target)}</div>
+    <dl class="kv">
+      <dt>당사자</dt><dd>${esc(labelOf(caseObj, act.actor_id))} → ${esc(labelOf(caseObj, act.recipient_id))}</dd>
+      <dt>지위</dt><dd>${esc(STATUS[act.status] || act.status)}</dd>
+      <dt>금액</dt><dd>${esc(amountText(act.amount))}</dd>
+      <dt>관련 청구</dt><dd>${esc((act.claim_ids || []).join(', ') || '—')}</dd>
+    </dl>
+    <div class="conds"><h4>조건</h4>${condList(act.conditions)}</div>`;
+}
+function miniAction(act, caseObj, focusId){
+  return `<div class="mini ${act.id === focusId ? 'focus' : ''}"><b>${esc(act.id)}</b> · ${esc(TYPE[act.type] || act.type)} · ${esc(STATUS[act.status] || act.status)} · ${esc(amountText(act.amount))}
+    ${act.id === focusId ? '<span class="badge">비교 중</span>' : ''}<div>${esc(act.target)}</div>
+    ${(act.conditions || []).length ? '<div class="small muted">조건: ' + act.conditions.map(c => esc((KIND[c.kind] || c.kind) + ' — ' + c.description)).join(' / ') + '</div>' : ''}</div>`;
+}
+function caseHtml(caseObj, claimIds){
+  const inp = caseObj.input, hit = new Set(claimIds);
+  const st = (inp.stakeholders || []).map(s => `${esc(s.id)} ${esc(s.label)} (${esc(s.role)})`).join(' · ');
+  const claims = (inp.claims || []).map(c => `<div class="claim ${hit.has(c.id) ? 'hit' : ''}">
+      <b>${esc(c.id)}</b> ${esc(c.issue)}<div class="small"><b>요청:</b> ${esc(c.requested_resolution)}</div>
+      ${(c.positions || []).map(p => `<div class="small"><b>${esc(labelOf(caseObj, p.stakeholder_id))}:</b> ${esc(p.text)}</div>`).join('')}
+    </div>`).join('');
+  const tl = (inp.timeline || []).map(t => `<div class="tl"><span class="id">${esc(t.id)}</span><span>${esc(t.time)}</span><span>${esc(t.content)}${t.attributed_to ? ` <span class="muted">(${esc(labelOf(caseObj, t.attributed_to))})</span>` : ''}</span></div>`).join('');
+  return `<p class="small muted">${st}</p><h3>청구</h3>${claims}<h3 style="margin-top:12px">경과</h3>${tl}`;
+}
+const isDone = a => !!(a && a.q1 && a.conf && a.q2 && a.q2.length);
+function visibleOrder(){ return $('onlyTodo').checked ? order.filter(id => !isDone(answers[id]) || id === order[pos]) : order; }
+
+function render(){
+  const id = order[pos], it = items[id], caseObj = packet.cases[it.case];
+  $('itemTitle').textContent = `${pos + 1} / ${order.length} · 문항 ${id} · 사례 ${it.case}`;
+  $('refCard').innerHTML = actionCard('기록된 결정 (참조)', it.reference_action, caseObj);
+  $('predCard').innerHTML = actionCard('모델 응답', it.predicted_action, caseObj);
+  $('caseBody').innerHTML = caseHtml(caseObj, [...(it.reference_action.claim_ids || []), ...(it.predicted_action.claim_ids || [])]);
+  $('refAll').innerHTML = caseObj.reference_actions.map(a => miniAction(a, caseObj, it.reference_action.id)).join('');
+  $('predAll').innerHTML = it.predicted_actions.map(a => miniAction(a, caseObj, it.predicted_action.id)).join('');
+  const a = answers[id] || {};
+  document.querySelectorAll('input[name=q1]').forEach(x => x.checked = x.value === a.q1);
+  document.querySelectorAll('input[name=conf]').forEach(x => x.checked = x.value === a.conf);
+  document.querySelectorAll('input[name=q2]').forEach(x => x.checked = (a.q2 || []).includes(x.value));
+  document.querySelectorAll('input[name=flags]').forEach(x => x.checked = (a.flags || []).includes(x.value));
+  $('note').value = a.note || '';
+  $('saveState').textContent = a.updated_at ? `저장됨 ${new Date(a.updated_at).toLocaleString()}` : '';
+  updateMeta();
+}
+function updateMeta(){
+  const id = order[pos], done = order.filter(k => isDone(answers[k])).length;
+  $('progText').textContent = `완료 ${done} / ${order.length}`;
+  $('progFill').style.width = (100 * done / order.length) + '%';
+  const st = $('itemState'); const d = isDone(answers[id]);
+  st.textContent = d ? '완료' : (answers[id] ? '작성 중' : '미작성'); st.className = 'badge ' + (d ? 'done' : 'todo');
+  const vis = visibleOrder();
+  $('jump').innerHTML = vis.map(k => `<option value="${k}" ${k === id ? 'selected' : ''}>${order.indexOf(k) + 1}. ${k} ${isDone(answers[k]) ? '✓' : ''}</option>`).join('');
+  const vi = vis.indexOf(id);
+  $('prev').disabled = vi <= 0; $('next').disabled = vi >= vis.length - 1;
+}
+
+/* ---------- saving ---------- */
+function collect(){
+  const val = n => (document.querySelector(`input[name=${n}]:checked`) || {}).value || null;
+  const vals = n => [...document.querySelectorAll(`input[name=${n}]:checked`)].map(x => x.value);
+  return {q1: val('q1'), q2: vals('q2'), conf: val('conf'), flags: vals('flags'), note: $('note').value.trim()};
+}
+function persist(){
+  const ok = store.set(storeKey(), {packet_id: packet.packet_id, reviewer, pos, answers});
+  if (!ok) $('saveState').textContent = '이 브라우저에 자동 저장할 수 없습니다. 자주 결과를 내보내 주세요.';
+}
+let timer = null;
+function saveCurrent(){
+  const id = order[pos], cur = collect(), prev = answers[id];
+  const empty = !cur.q1 && !cur.conf && !cur.q2.length && !cur.flags.length && !cur.note;
+  if (empty && !prev) return;
+  const same = prev && JSON.stringify({...prev, updated_at: undefined}) === JSON.stringify({...cur, updated_at: undefined});
+  if (!same){ answers[id] = {...cur, updated_at: new Date().toISOString()}; }
+  persist();
+  $('saveState').textContent = answers[id] ? `저장됨 ${new Date(answers[id].updated_at).toLocaleString()}` : '';
+  updateMeta();
+}
+$('form').addEventListener('change', saveCurrent);
+$('note').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(saveCurrent, 500); });
+
+function go(delta){
+  saveCurrent();
+  const vis = visibleOrder(), vi = vis.indexOf(order[pos]), ni = vi + delta;
+  if (ni < 0 || ni >= vis.length) return;
+  pos = order.indexOf(vis[ni]); persist(); render(); window.scrollTo({top: 0});
+}
+$('prev').addEventListener('click', () => go(-1));
+$('next').addEventListener('click', () => go(1));
+$('saveNext').addEventListener('click', () => {
+  const a = collect();
+  if (!a.q1 || !a.conf || !a.q2.length){ $('saveState').textContent = 'Q1, Q2, Q3를 모두 선택해 주세요.'; return; }
+  if (a.q1 !== 'same' && !a.note){ $('saveState').textContent = '"다름"·"판단 불가"에는 근거 메모를 적어 주세요.'; $('note').focus(); return; }
+  go(1);
+});
+$('jump').addEventListener('change', e => { saveCurrent(); pos = order.indexOf(e.target.value); persist(); render(); });
+$('onlyTodo').addEventListener('change', updateMeta);
+
+/* ---------- export ---------- */
+function download(name, text, type){
+  const url = URL.createObjectURL(new Blob([text], {type}));
+  const a = Object.assign(document.createElement('a'), {href: url, download: name});
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const stamp = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+$('exportJson').addEventListener('click', () => {
+  saveCurrent();
+  const out = {format: 'condition-review-result/1', packet_id: packet.packet_id, reviewer, exported_at: new Date().toISOString(),
+    n_items: order.length, n_done: order.filter(k => isDone(answers[k])).length, order, answers};
+  download(`condition_review_${reviewer}_${stamp()}.json`, JSON.stringify(out, null, 1), 'application/json');
+});
+$('exportCsv').addEventListener('click', () => {
+  saveCurrent();
+  const q = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
+  const rows = [['reviewer','position','item_id','case','q1','q2','confidence','flags','note','updated_at'].join(',')];
+  order.forEach((k, i) => { const a = answers[k] || {}; rows.push([reviewer, i + 1, k, items[k].case, a.q1, (a.q2 || []).join(';'), a.conf, (a.flags || []).join(';'), a.note, a.updated_at].map(q).join(',')); });
+  download(`condition_review_${reviewer}_${stamp()}.csv`, '﻿' + rows.join('\n'), 'text/csv');
+});
+
+/* ---------- guide & keys ---------- */
+$('openGuide').addEventListener('click', () => $('guide').classList.remove('hidden'));
+$('closeGuide').addEventListener('click', () => $('guide').classList.add('hidden'));
+$('guide').addEventListener('click', e => { if (e.target.id === 'guide') $('guide').classList.add('hidden'); });
+document.addEventListener('keydown', e => {
+  if ($('review').classList.contains('hidden')) return;
+  if (e.key === 'Escape'){ $('guide').classList.add('hidden'); return; }
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'textarea' || tag === 'select' || (tag === 'input' && e.target.type === 'text')) return;
+  if (['1','2','3'].includes(e.key)){
+    const v = {1:'same', 2:'different', 3:'undecidable'}[e.key];
+    const r = document.querySelector(`input[name=q1][value=${v}]`); r.checked = true; saveCurrent();
+  } else if (e.key === 'ArrowRight'){ go(1); }
+  else if (e.key === 'ArrowLeft'){ go(-1); }
+  else if (e.key === 'Enter'){ e.preventDefault(); $('saveNext').click(); }
+});
+window.addEventListener('beforeunload', () => { if (packet && order.length) saveCurrent(); });
+})();
+</script>
+</body>
+</html>
